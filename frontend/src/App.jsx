@@ -14,13 +14,20 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Handle hash-based auth callback from Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => setSession(session)
+      (event, session) => {
+        setSession(session)
+        if (event === 'SIGNED_IN') {
+          // Clear the hash from URL after successful auth
+          window.history.replaceState(null, '', window.location.pathname)
+        }
+      }
     )
 
     return () => subscription.unsubscribe()
