@@ -2,14 +2,14 @@ import { supabase } from '../lib/supabase'
 import { Car } from 'lucide-react'
 
 export default function Login() {
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/track'
+    const handleGoogleLogin = async () => {
+        await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/track`
+          }
+        })
       }
-    })
-  }
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
