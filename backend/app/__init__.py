@@ -10,7 +10,7 @@ def create_app():
     app.config.from_object(Config)
     CORS(app, origins=[
     "http://localhost:5173",
-    "https://drivio-frontend.vercel.app",
+    "https://drivio-flame.vercel.app",
     "https://*.vercel.app"
 ])
 
