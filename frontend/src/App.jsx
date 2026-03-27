@@ -14,22 +14,29 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Handle hash-based auth callback from Supabase
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
-
+    // Explicitly process hash from URL if present
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session)
+        setLoading(false)
+        window.history.replaceState(null, '', window.location.pathname)
+      })
+    } else {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session)
+        setLoading(false)
+      })
+    }
+  
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session)
         if (event === 'SIGNED_IN') {
-          // Clear the hash from URL after successful auth
-          window.history.replaceState(null, '', window.location.pathname)
+          window.history.replaceState(null, '', '/track')
         }
       }
     )
-
+  
     return () => subscription.unsubscribe()
   }, [])
 
