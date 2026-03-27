@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
-import { MapPin, Fuel, DollarSign, Clock, TrendingUp } from 'lucide-react'
+import { MapPin, Fuel, DollarSign, Clock, TrendingUp, Pencil, Check, X } from 'lucide-react'
 
 function formatDuration(seconds) {
   const h = Math.floor(seconds / 3600)
@@ -14,6 +14,118 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric'
   })
+}
+
+function RideCard({ ride, onNameUpdate }) {
+  const [editing, setEditing] = useState(false)
+  const [nameInput, setNameInput] = useState(ride.name || '')
+  const [saving, setSaving] = useState(false)
+
+  const handleSaveName = async () => {
+    setSaving(true)
+    const { error } = await supabase
+      .from('rides')
+      .update({ name: nameInput.trim() || null })
+      .eq('id', ride.id)
+    if (!error) {
+      onNameUpdate(ride.id, nameInput.trim() || null)
+      setEditing(false)
+    }
+    setSaving(false)
+  }
+
+  const handleCancel = () => {
+    setNameInput(ride.name || '')
+    setEditing(false)
+  }
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+
+      {/* Trip name row */}
+      <div className="flex items-center justify-between mb-2">
+        {editing ? (
+          <div className="flex items-center gap-2 flex-1">
+            <input
+              type="text"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              placeholder="e.g. Client meeting downtown"
+              autoFocus
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            />
+            <button
+              onClick={handleSaveName}
+              disabled={saving}
+              className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handleCancel}
+              className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-1">
+            {ride.name ? (
+              <p className="text-white text-sm font-medium">{ride.name}</p>
+            ) : (
+              <p className="text-zinc-600 text-sm italic">Unnamed trip</p>
+            )}
+            <button
+              onClick={() => setEditing(true)}
+              className="p-1 rounded-lg text-zinc-600 hover:text-zinc-400 transition-colors"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Date and distance badge */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-zinc-500 text-xs">
+          {formatDate(ride.started_at)}
+        </p>
+        <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">
+          {ride.distance_miles} mi
+        </span>
+      </div>
+
+      {/* Route */}
+      <div className="flex flex-col gap-1.5 mb-3">
+        <div className="flex items-start gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
+          <p className="text-white text-sm leading-tight">{ride.start_address}</p>
+        </div>
+        <div className="w-px h-3 bg-zinc-700 ml-1" />
+        <div className="flex items-start gap-2">
+          <div className="w-2 h-2 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
+          <p className="text-white text-sm leading-tight">{ride.end_address}</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="flex gap-4 pt-3 border-t border-zinc-800">
+        <div className="flex items-center gap-1.5">
+          <Fuel className="w-3 h-3 text-zinc-500" />
+          <span className="text-zinc-400 text-xs">{ride.gas_used} gal</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <DollarSign className="w-3 h-3 text-zinc-500" />
+          <span className="text-zinc-400 text-xs">${ride.gas_cost}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3 h-3 text-zinc-500" />
+          <span className="text-zinc-400 text-xs">{formatDuration(ride.duration_seconds)}</span>
+        </div>
+      </div>
+
+    </div>
+  )
 }
 
 export default function History({ session }) {
@@ -32,6 +144,12 @@ export default function History({ session }) {
     }
     fetchRides()
   }, [session])
+
+  const handleNameUpdate = (rideId, newName) => {
+    setRides(prev => prev.map(r =>
+      r.id === rideId ? { ...r, name: newName } : r
+    ))
+  }
 
   const totalMiles = rides.reduce((sum, r) => sum + (r.distance_miles || 0), 0)
   const totalCost = rides.reduce((sum, r) => sum + (r.gas_cost || 0), 0)
@@ -105,49 +223,11 @@ export default function History({ session }) {
         ) : (
           <div className="flex flex-col gap-3">
             {rides.map((ride) => (
-              <div key={ride.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-
-                {/* Date and distance badge */}
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-zinc-500 text-xs">
-                    {formatDate(ride.started_at)}
-                  </p>
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">
-                    {ride.distance_miles} mi
-                  </span>
-                </div>
-
-                {/* Route */}
-                <div className="flex flex-col gap-1.5 mb-3">
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
-                    <p className="text-white text-sm leading-tight">{ride.start_address}</p>
-                  </div>
-                  <div className="w-px h-3 bg-zinc-700 ml-1" />
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
-                    <p className="text-white text-sm leading-tight">{ride.end_address}</p>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="flex gap-4 pt-3 border-t border-zinc-800">
-                  <div className="flex items-center gap-1.5">
-                    <Fuel className="w-3 h-3 text-zinc-500" />
-                    <span className="text-zinc-400 text-xs">{ride.gas_used} gal</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3 h-3 text-zinc-500" />
-                    <span className="text-zinc-400 text-xs">${ride.gas_cost}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3 h-3 text-zinc-500" />
-                    <span className="text-zinc-400 text-xs">{formatDuration(ride.duration_seconds)}</span>
-                  </div>
-                </div>
-
-              </div>
+              <RideCard
+                key={ride.id}
+                ride={ride}
+                onNameUpdate={handleNameUpdate}
+              />
             ))}
           </div>
         )}
