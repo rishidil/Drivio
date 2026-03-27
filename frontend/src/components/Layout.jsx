@@ -1,9 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Car, MapPin, History, Settings, LogOut } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useState } from 'react'
 
 export default function Layout({ children, session }) {
   const navigate = useNavigate()
+  const [showSignOut, setShowSignOut] = useState(false)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -19,10 +21,8 @@ export default function Layout({ children, session }) {
   return (
     <div className="min-h-screen bg-zinc-950 flex">
 
-      {/* Sidebar */}
-      <aside className="w-56 bg-zinc-900 border-r border-zinc-800 flex flex-col fixed h-full">
-
-        {/* Logo */}
+      {/* Sidebar — desktop only */}
+      <aside className="hidden md:flex w-56 bg-zinc-900 border-r border-zinc-800 flex-col fixed h-full z-10">
         <div className="flex items-center gap-3 px-5 py-6 border-b border-zinc-800">
           <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
             <Car className="w-4 h-4 text-white" />
@@ -33,7 +33,6 @@ export default function Layout({ children, session }) {
           </span>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
@@ -53,7 +52,6 @@ export default function Layout({ children, session }) {
           ))}
         </nav>
 
-        {/* User */}
         <div className="px-3 py-4 border-t border-zinc-800">
           <div className="flex items-center gap-3 px-3 py-2 mb-1">
             <img
@@ -82,9 +80,61 @@ export default function Layout({ children, session }) {
       </aside>
 
       {/* Main content */}
-      <main className="ml-56 flex-1 p-8">
-        {children}
+      <main className="flex-1 md:ml-56 pb-24 md:pb-0">
+
+        {/* Mobile top bar */}
+        <div className="md:hidden flex items-center justify-between px-4 py-4 border-b border-zinc-800 bg-zinc-900">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
+              <Car className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-white text-base font-bold"
+              style={{ fontFamily: 'Syne, sans-serif' }}>
+              Drivio
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <img
+              src={session?.user?.user_metadata?.avatar_url}
+              alt="avatar"
+              className="w-7 h-7 rounded-full"
+              onError={(e) => e.target.style.display = 'none'}
+            />
+            <button
+              onClick={handleLogout}
+              className="p-2 text-zinc-400 hover:text-red-400 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Page content */}
+        <div className="px-4 py-6 md:px-8">
+          {children}
+        </div>
       </main>
+
+      {/* Bottom nav — mobile only */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 flex items-center z-10">
+        {navItems.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors duration-150 ${
+                isActive
+                  ? 'text-emerald-400'
+                  : 'text-zinc-500'
+              }`
+            }
+          >
+            <Icon className="w-5 h-5" />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+
     </div>
   )
 }
